@@ -52,6 +52,7 @@ def index(crawler_text):
 
 def create_index():
     #
-    # web_crawler = crawler.Crawler()
-    # crawled_result = web_crawler.get_content()
+    web_crawler = crawler.Crawler()
+    crawled_result = web_crawler.get_content()
+
 
