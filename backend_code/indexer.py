@@ -30,7 +30,7 @@ def stopword_remover(text):
     return filtered_words
 
 def stemmer(filtered_words):
-    # TODO: Stem the words
+    #
     porter_stemmer = PorterStemmer()
     stemmed_words = []
     for word in filtered_words:
@@ -43,7 +43,7 @@ def stemmer(filtered_words):
     return stemmed_words
 
 def index(crawler_text):
-    # TODO: Apply stopword_remover, stemmer
+    #
     # apply stopword removal
     filtered_words = stopword_remover(crawler_text)
     preprocessed_words = stemmer(filtered_words)
@@ -51,7 +51,7 @@ def index(crawler_text):
     return preprocessed_words
 
 def create_index():
-    # TODO: Need to somehow link this to the database
-    web_crawler = crawler.Crawler()
-    crawled_result = web_crawler.get_content()
+    #
+    # web_crawler = crawler.Crawler()
+    # crawled_result = web_crawler.get_content()
 
