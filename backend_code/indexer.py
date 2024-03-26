@@ -14,4 +14,4 @@ def stemmer(words):
 
 def index(results):
     # TODO: Apply stopword_remover, stemmer
-    # Then insert into two inverted files.
+    # Then insert into two inverted indexes.
