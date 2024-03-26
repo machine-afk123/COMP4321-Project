@@ -8,6 +8,7 @@ class Crawler:
         self.base_url = base_url
         self.num_pages = num_pages
 
+
     def url_checker(self, url):
         print("TODO")
 
@@ -61,7 +62,7 @@ class Crawler:
         visited_urls = set()
         unvisited_urls = [self.base_url]
 
-        while unvisited_urls and len(visited_urls) < self.num_pages:
+        while unvisited_urls and len(visited_urls) <= self.num_pages:
             curr_url = unvisited_urls.pop(0)
 
             if curr_url in visited_urls:
