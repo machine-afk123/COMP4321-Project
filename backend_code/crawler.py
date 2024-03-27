@@ -8,7 +8,6 @@ class Crawler:
         self.base_url = base_url
         self.num_pages = num_pages
 
-
     def url_checker(self, url):
         print("TODO")
 
@@ -36,29 +35,6 @@ class Crawler:
 
         return title, body_text
 
-    def crawl(self, url):
-        try:
-            # TODO: DEFINE RULES FOR FETCHING
-            response = requests.get(url) # make get request to link to get the data.
-            response.raise_for_status()
-
-            beautiful_soup = BeautifulSoup(response.content, "html.parser")
-            page_counter = 0
-            last_modified_date = self.get_last_modified_date(url)
-            title, body_text = self.get_content(beautiful_soup)
-            print(f"Title: {title} \n")
-            print(f"Body: {body_text}")
-
-            links = []
-            for link in beautiful_soup.find_all("a", href=True):
-                child_link = urljoin(url, link["href"])
-                links.append(child_link)
-                page_counter += 1
-
-            return links
-        except requests.exceptions.RequestException:
-            return None
-
     def bfs_extract(self):
         # extract the number of pages using BFS
         visited_urls = set()
@@ -70,7 +46,7 @@ class Crawler:
             if curr_url in visited_urls:
                 continue
 
-            print(f"crawl: {curr_url}")
+            print(f"Crawl: {curr_url}")
 
             new_links = self.crawl(curr_url)
             visited_urls.add(curr_url)
@@ -78,6 +54,30 @@ class Crawler:
             unvisited_urls.extend(new_links)
         
         return visited_urls
+    
+    def crawl(self, url):
+        try:
+            # TODO: DEFINE RULES FOR FETCHING
+            response = requests.get(url) # make get request to link to get the data.
+            response.raise_for_status()
+
+            beautiful_soup = BeautifulSoup(response.content, "html.parser")
+            page_counter = 0
+            last_modified_date = self.get_last_modified_date(url)
+            title, body_text = self.get_content(beautiful_soup)
+            print(f"Title: {title}")
+            print(f"Last Modified: {last_modified_date}")
+            print(f"Body: {body_text} \n")
+
+            links = []
+            for link in beautiful_soup.find_all("a", href=True):
+                child_link = urljoin(url, link["href"])
+                links.append(child_link)
+                page_counter += 1
+
+            return links
+        except requests.exceptions.RequestException:
+            return None
 
 if __name__ == "__main__":
     extracted_links = []
