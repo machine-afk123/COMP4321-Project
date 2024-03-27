@@ -46,34 +46,37 @@ class Crawler:
             if curr_url in visited_urls:
                 continue
 
-            new_links = self.crawl(curr_url)
+            new_links = self.crawl(curr_url, False)
             visited_urls.add(curr_url)
 
             unvisited_urls.extend(new_links)
         
         return visited_urls
     
-    def crawl(self, url):
+    def crawl(self, url, crawl_complete):
         try:
             # TODO: DEFINE RULES FOR FETCHING
             response = requests.get(url) # make get request to link to get the data.
             response.raise_for_status()
-            print(f"URL: {url}")
-
+            
             beautiful_soup = BeautifulSoup(response.content, "html.parser")
             page_counter = 0
             last_modified_date = self.get_last_modified_date(url)
             title, body_text = self.get_content(beautiful_soup)
-            print(f"Title: {title}")
-            print(f"Last Modified: {last_modified_date}")
-            print(f"Body: {body_text}")
 
             links = []
             for link in beautiful_soup.find_all("a", href=True):
                 child_link = urljoin(url, link["href"])
                 links.append(child_link)
                 page_counter += 1
-            print(f"Child links: {links} \n")
+
+            if crawl_complete:
+                print(f"URL: {url}")
+                print(f"Title: {title}")
+                print(f"Last Modified: {last_modified_date}")
+                print(f"Body: {body_text}")
+                print(f"Child links: {links} \n")
+
             return links
         
         except requests.exceptions.RequestException:
@@ -89,4 +92,4 @@ if __name__ == "__main__":
     for link in bfs_extract:
         print(f"Page {page_no}")
         page_no += 1
-        crawl = crawler.crawl(link)
+        crawl = crawler.crawl(link, True)
