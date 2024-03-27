@@ -46,6 +46,8 @@ class Crawler:
             page_counter = 0
             last_modified_date = self.get_last_modified_date(url)
             title, body_text = self.get_content(beautiful_soup)
+            print(f"Title: {title} \n")
+            print(f"Body: {body_text}")
 
             links = []
             for link in beautiful_soup.find_all("a", href=True):
@@ -62,7 +64,7 @@ class Crawler:
         visited_urls = set()
         unvisited_urls = [self.base_url]
 
-        while unvisited_urls and len(visited_urls) <= self.num_pages:
+        while unvisited_urls and len(visited_urls) < self.num_pages:
             curr_url = unvisited_urls.pop(0)
 
             if curr_url in visited_urls:
@@ -74,9 +76,14 @@ class Crawler:
             visited_urls.add(curr_url)
 
             unvisited_urls.extend(new_links)
+        
+        return visited_urls
 
 if __name__ == "__main__":
     extracted_links = []
     base_url = "https://www.cse.ust.hk/~kwtleung/COMP4321/ust_cse.htm"
-    crawler = Crawler(base_url)
-
+    num_pages = 30
+    crawler = Crawler(base_url, num_pages)
+    bfs_extract = crawler.bfs_extract()
+    for link in bfs_extract:
+        crawl = crawler.crawl(link)
