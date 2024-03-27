@@ -46,8 +46,6 @@ class Crawler:
             if curr_url in visited_urls:
                 continue
 
-            print(f"Crawl: {curr_url}")
-
             new_links = self.crawl(curr_url)
             visited_urls.add(curr_url)
 
@@ -60,6 +58,7 @@ class Crawler:
             # TODO: DEFINE RULES FOR FETCHING
             response = requests.get(url) # make get request to link to get the data.
             response.raise_for_status()
+            print(f"URL: {url}")
 
             beautiful_soup = BeautifulSoup(response.content, "html.parser")
             page_counter = 0
@@ -67,15 +66,16 @@ class Crawler:
             title, body_text = self.get_content(beautiful_soup)
             print(f"Title: {title}")
             print(f"Last Modified: {last_modified_date}")
-            print(f"Body: {body_text} \n")
+            print(f"Body: {body_text}")
 
             links = []
             for link in beautiful_soup.find_all("a", href=True):
                 child_link = urljoin(url, link["href"])
                 links.append(child_link)
                 page_counter += 1
-
+            print(f"Child links: {links} \n")
             return links
+        
         except requests.exceptions.RequestException:
             return None
 
@@ -85,5 +85,8 @@ if __name__ == "__main__":
     num_pages = 30
     crawler = Crawler(base_url, num_pages)
     bfs_extract = crawler.bfs_extract()
+    page_no = 1
     for link in bfs_extract:
+        print(f"Page {page_no}")
+        page_no += 1
         crawl = crawler.crawl(link)
