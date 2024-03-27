@@ -88,8 +88,16 @@ if __name__ == "__main__":
     num_pages = 30
     crawler = Crawler(base_url, num_pages)
     bfs_extract = crawler.bfs_extract()
-    page_no = 1
-    for link in bfs_extract:
-        print(f"Page {page_no}")
-        page_no += 1
-        crawl = crawler.crawl(link, True)
+
+    print(f"Extracted links: ")
+    i = 0
+    bfs_extract = sorted(bfs_extract)
+    for x in bfs_extract:
+        i += 1
+        print(f"{i}. {x}")
+
+    # page_no = 1
+    # for link in bfs_extract:
+    #     print(f"Page {page_no}")
+    #     page_no += 1
+    #     crawl = crawler.crawl(link, True)
