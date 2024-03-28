@@ -2,6 +2,9 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from datetime import datetime
+from collections import deque
+import sys
+import re
 
 class Crawler:
     def __init__(self, base_url, num_pages):
@@ -21,18 +24,31 @@ class Crawler:
                 last_modified_date = ""
             return last_modified_date
         except requests.exceptions.RequestException:
-            return None
+            return None    
 
-    def get_content(self, soup_obj):# TODO: get Page title, page content
-        # get page title from the soup object
+    def get_content(self, soup_obj):
         if soup_obj.title:
             title = soup_obj.title.string
         else:
             title = ""
 
         body = soup_obj.find('body')
-        body_text = body.get_text(strip=True)
+        # todo : remove special characters 
 
+        if body:
+            body_text = ' '.join(body.stripped_strings)
+        else:
+            body_text = ' '.join(soup_obj.stripped_strings)
+
+        # preprocessing on strings
+        body_text = body_text.replace('\n', ' ')
+        body_text = body_text.replace('\t', ' ')
+        body_text = body_text.lower()
+        # remove all non ascii chars
+        body_text = body_text.encode('ascii', 'replace').decode('ascii')
+        body_text = body_text.replace('?', ' ')
+        # remove special characters
+        body_text = re.sub(r'[^a-zA-Z0-9\s]+',' ', body_text)
         return title, body_text
 
     def bfs_extract(self):
@@ -58,6 +74,7 @@ class Crawler:
             # TODO: DEFINE RULES FOR FETCHING
             response = requests.get(url) # make get request to link to get the data.
             response.raise_for_status()
+            page_size = len(response.content)
             
             beautiful_soup = BeautifulSoup(response.content, "html.parser")
             page_counter = 0
@@ -72,6 +89,7 @@ class Crawler:
 
             if crawl_complete:
                 print(f"URL: {url}")
+                print(f"Page Size: {page_size}")
                 print(f"Title: {title}")
                 print(f"Last Modified: {last_modified_date}")
                 print(f"Body: {body_text}")
@@ -84,14 +102,14 @@ class Crawler:
 
 if __name__ == "__main__":
     extracted_links = []
-    base_url = "https://www.cse.ust.hk/~kwtleung/COMP4321/ust_cse.htm"
+    base_url = "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm"
     num_pages = 30
     crawler = Crawler(base_url, num_pages)
     bfs_extract = crawler.bfs_extract()
 
     # print(f"Extracted links: ")
     # i = 0
-    bfs_extract = sorted(bfs_extract)
+    # # bfs_extract = sorted(bfs_extract)
     # for x in bfs_extract:
     #     i += 1
     #     print(f"{i}. {x}")
