@@ -2,17 +2,38 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from datetime import datetime
-from collections import deque
-import sys
 import re
+import sqlite3
+import json
 
 class Crawler:
     def __init__(self, base_url, num_pages):
         self.base_url = base_url
         self.num_pages = num_pages
+        self.db_conn = sqlite3.connect('web_crawler.db')
+        self.c = self.db_conn.cursor()
+        # self.title
+        # self.body_content
+        # self.last_modified_date
+        # self.page_size
+        # self.child_links
+    def page_id_exists(self, url):
+        self.c.execute("SELECT page_id FROM page_mapping WHERE url = ?", (url,))
+        page_id = self.c.fetchone()
+        if page_id:
+            return page_id
+        else:
+            return False
 
-    def url_checker(self, url):
-        print("TODO")
+    def last_modified_date_checker(self, url, last_modified_date):
+        page_id = self.page_id_exists(url)
+        self.c.execute("SELECT last_modified FROM page_info WHERE page_id = ?", (page_id,))
+        prev_last_modified_date = self.c.fetchone()
+        prev_last_modified_date = datetime.strptime(prev_last_modified_date, '%a, %d %b %Y %H:%M:%S %Z')
+        if last_modified_date > prev_last_modified_date:
+            return True
+        else:
+            return False
 
     def get_last_modified_date(self, url):
         try:
@@ -72,6 +93,9 @@ class Crawler:
     def crawl(self, url, crawl_complete):
         try:
             # TODO: DEFINE RULES FOR FETCHING
+            page_id = self.page_id_exists(url)
+            if page_id != None:
+                return None
             response = requests.get(url) # make get request to link to get the data.
             response.raise_for_status()
             page_size = len(response.content)
@@ -79,6 +103,10 @@ class Crawler:
             beautiful_soup = BeautifulSoup(response.content, "html.parser")
             page_counter = 0
             last_modified_date = self.get_last_modified_date(url)
+            date_result = self.last_modified_date_checker(url, last_modified_date)
+            if date_result == False:
+                return None
+                
             title, body_text = self.get_content(beautiful_soup)
 
             links = []
