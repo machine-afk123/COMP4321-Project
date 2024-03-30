@@ -113,12 +113,12 @@ def populate_forward_index(page_id, word_id, frequency, positions, table):
     else:
         print("Invalid table name. Please choose from forwardIndex_body or forwardIndex_title.")
 
-def populate_inverted_index(word_id, page_body_freq, table):
+def populate_inverted_index(word_id, page_freq, table):
     if table in ['invertedIndex_body', 'invertedIndex_title']:
         cursor.execute(f"""
             INSERT INTO {table} (word_id, pages_freq)
             VALUES (?, ?)
-        """, (word_id, page_body_freq))
+        """, (word_id, page_freq))
         conn.commit()
     else:
         print("Invalid table name. Please choose from invertedIndex_body or invertedIndex_title.")
