@@ -5,28 +5,28 @@ def create_tables():
     cursor = conn.cursor()
 
     cursor.execute("""
-        CREATE TABLE page_mapping (
+        CREATE TABLE IF NOT EXISTS page_mapping (
             page_id INTEGER PRIMARY KEY AUTOINCREMENT,
             url TEXT NOT NULL
         )
     """)
 
     cursor.execute("""
-        CREATE TABLE stemmed_mapping (
+        CREATE TABLE IF NOT EXISTS stemmed_mapping (
             word_id INTEGER PRIMARY KEY AUTOINCREMENT,
             word TEXT NOT NULL
         )
     """)
 
     cursor.execute("""
-        CREATE TABLE non_stemmed_mapping (
+        CREATE TABLE IF NOT EXISTS non_stemmed_mapping (
             word_id INTEGER PRIMARY KEY AUTOINCREMENT,
             word TEXT NOT NULL
         )
     """)
 
     cursor.execute("""
-        CREATE TABLE page_info (
+        CREATE TABLE IF NOT EXISTS page_info (
             page_id INTEGER PRIMARY KEY,
             page_size INTEGER,
             last_modified TEXT,
@@ -38,7 +38,7 @@ def create_tables():
     """)
 
     cursor.execute("""
-        CREATE TABLE forwardIndex_body (
+        CREATE TABLE IF NOT EXISTS forwardIndex_body (
             page_id INTEGER,
             word_id INTEGER,
             frequency INTEGER,
@@ -50,7 +50,7 @@ def create_tables():
     """)
 
     cursor.execute("""
-        CREATE TABLE forwardIndex_title (
+        CREATE TABLE IF NOT EXISTS forwardIndex_title (
             page_id INTEGER,
             word_id INTEGER,
             frequency INTEGER,
@@ -62,7 +62,7 @@ def create_tables():
     """)
 
     cursor.execute("""
-        CREATE TABLE invertedIndex_body (
+        CREATE TABLE IF NOT EXISTS invertedIndex_body (
             word_id INTEGER PRIMARY KEY,
             pages_freq TEXT,
             FOREIGN KEY(word_id) REFERENCES stemmed_mapping(word_id)
@@ -70,7 +70,7 @@ def create_tables():
     """)
 
     cursor.execute("""
-        CREATE TABLE invertedIndex_title (
+        CREATE TABLE IF NOT EXISTS invertedIndex_title (
             word_id INTEGER PRIMARY KEY,
             pages_freq TEXT,
             FOREIGN KEY(word_id) REFERENCES stemmed_mapping(word_id)
