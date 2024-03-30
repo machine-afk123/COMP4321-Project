@@ -10,11 +10,10 @@ import db
 
 def get_stopwords():
     stopword_list = []
-    with open("COMP4321-Project\\backend_code\\stopwords.txt") as file_obj:
-        stopwords = file_obj.readline()
-
-    for word in stopwords:
-        stopword_list.append(word.strip())
+    with open("/Users/Joshua/Documents/GitHub/COMP4321-Project/backend_code/stopwords.txt") as file_obj:
+        for line in file_obj:
+            stopword = line.strip()
+            stopword_list.append(stopword)
 
     return stopword_list
 
@@ -148,5 +147,5 @@ def create_index():
     for word in inverted_index_title:
         serialized_title_json = json.dumps(inverted_index_title[word])
         db.populate_inverted_index(word, serialized_title_json, "invertedIndex_title")
-        
+
     web_crawler.close_connection()

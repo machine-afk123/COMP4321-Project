@@ -4,8 +4,8 @@ import sqlite3
 import json
     
 def main():
-    db.create_tables()
-    indexer.create_index()
+    # db.create_tables()
+    # indexer.create_index()
 
     db_conn = sqlite3.connect('web_crawler.db')
     c = db_conn.cursor()    
@@ -13,7 +13,6 @@ def main():
     rows = c.fetchall()
 
     def get_word_freq(url):
-        print("this function is ")
         keyword_freq_map = {}
         c.execute("SELECT word_id, pages_freq FROM invertedIndex_body")
         rows_inv_index_body = c.fetchall()
