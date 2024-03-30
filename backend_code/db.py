@@ -1,9 +1,9 @@
 import sqlite3
 
-conn = sqlite3.connect('web_crawler.db')
-cursor = conn.cursor()
-
 def create_tables():
+    conn = sqlite3.connect('web_crawler.db')
+    cursor = conn.cursor()
+
     cursor.execute("""
         CREATE TABLE page_mapping (
             page_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,8 +78,12 @@ def create_tables():
     """)
 
     conn.commit()
+    conn.close()
 
 def populate_mapping(attribute, table):
+    conn = sqlite3.connect('web_crawler.db')
+    cursor = conn.cursor()
+
     if table == 'page_mapping':
         cursor.execute(f"SELECT * FROM {table} WHERE url = ?", (attribute,))
         data = cursor.fetchone()
@@ -95,7 +99,12 @@ def populate_mapping(attribute, table):
     else:
         print("Invalid table name. Please choose from page_mapping, stemmed_mapping or non_stemmed_mapping.")
 
+    conn.close()
+
 def get_id(table, data, attribute):
+    conn = sqlite3.connect('web_crawler.db')
+    cursor = conn.cursor()
+
     cursor.execute(f"SELECT rowid FROM {table} WHERE {attribute} = ?", (data,))
     data = cursor.fetchone()
     if data is None:
@@ -103,18 +112,28 @@ def get_id(table, data, attribute):
         conn.commit()
         cursor.execute(f"SELECT last_insert_rowid() FROM {table}")
         data = cursor.fetchone()
+
+    conn.close()
     return data[0]
 
 def populate_pageinfo(pages):
+    conn = sqlite3.connect('web_crawler.db')
+    cursor = conn.cursor()
+
     for url, info in pages.items():
         page_id = get_id('page_mapping', url, 'url')
         cursor.execute("""
             INSERT INTO page_info (page_id, page_size, last_modified, title, body, child_links)
             VALUES (?, ?, ?, ?, ?, ?)
         """, (page_id, info['page_size'], info['last_modified'], info['title'], info['body'], ','.join(info['child_links'])))
+    
     conn.commit()
+    conn.close()
 
 def populate_forward_index(url, word, frequency, positions, table):
+    conn = sqlite3.connect('web_crawler.db')
+    cursor = conn.cursor()
+
     if table in ['forwardIndex_body', 'forwardIndex_title']:
         page_id = get_id('page_mapping', url, 'url')
         word_id = get_id('stemmed_mapping', word, 'word')
@@ -126,7 +145,12 @@ def populate_forward_index(url, word, frequency, positions, table):
     else:
         print("Invalid table name. Please choose from forwardIndex_body or forwardIndex_title.")
 
+    conn.close()
+
 def populate_inverted_index(word, page_freq, table):
+    conn = sqlite3.connect('web_crawler.db')
+    cursor = conn.cursor()
+
     if table in ['invertedIndex_body', 'invertedIndex_title']:
         word_id = get_id('stemmed_mapping', word, 'word')
         cursor.execute(f"""
@@ -137,5 +161,4 @@ def populate_inverted_index(word, page_freq, table):
     else:
         print("Invalid table name. Please choose from invertedIndex_body or invertedIndex_title.")
 
-# create_tables()
-conn.close()
+    conn.close()

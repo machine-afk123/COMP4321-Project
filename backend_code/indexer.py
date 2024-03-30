@@ -182,7 +182,7 @@ def create_index():
     for word in inverted_index_title:
         db.populate_inverted_index(word, json.dumps(inverted_index_title[word]), "invertedIndex_title")
     
-         
+    web_crawler.close_connection()
 
     
 

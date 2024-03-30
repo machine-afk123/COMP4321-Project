@@ -13,6 +13,9 @@ class Crawler:
         self.db_conn = sqlite3.connect('web_crawler.db')
         self.c = self.db_conn.cursor()
 
+    def close_connection(self):
+        self.db_conn.close()
+
     def page_id_exists(self, url):
         self.c.execute("SELECT page_id FROM page_mapping WHERE url = ?", (url,))
         page_id = self.c.fetchone()
@@ -79,7 +82,7 @@ class Crawler:
             if curr_url in visited_urls:
                 continue
 
-            new_links = self.crawl(curr_url, False)
+            new_links = self.crawl(curr_url)
             visited_urls.add(curr_url)
 
             unvisited_urls.extend(new_links)
