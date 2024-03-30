@@ -95,16 +95,29 @@ def populate_mapping(attribute, table):
     else:
         print("Invalid table name. Please choose from page_mapping, stemmed_mapping or non_stemmed_mapping.")
 
+def get_id(table, data, attribute):
+    cursor.execute(f"SELECT rowid FROM {table} WHERE {attribute} = ?", (data,))
+    data = cursor.fetchone()
+    if data is None:
+        cursor.execute(f"INSERT INTO {table} ({attribute}) VALUES (?)", (data,))
+        conn.commit()
+        cursor.execute(f"SELECT last_insert_rowid() FROM {table}")
+        data = cursor.fetchone()
+    return data[0]
+
 def populate_pageinfo(pages):
-    for page_id, info in pages.items():
+    for url, info in pages.items():
+        page_id = get_id('page_mapping', url, 'url')
         cursor.execute("""
             INSERT INTO page_info (page_id, page_size, last_modified, title, body, child_links)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?)
         """, (page_id, info['page_size'], info['last_modified'], info['title'], info['body'], ','.join(info['child_links'])))
     conn.commit()
 
-def populate_forward_index(page_id, word_id, frequency, positions, table):
+def populate_forward_index(url, word, frequency, positions, table):
     if table in ['forwardIndex_body', 'forwardIndex_title']:
+        page_id = get_id('page_mapping', url, 'url')
+        word_id = get_id('stemmed_mapping', word, 'word')
         cursor.execute(f"""
             INSERT INTO {table} (page_id, word_id, frequency, positions)
             VALUES (?, ?, ?, ?)
@@ -113,8 +126,9 @@ def populate_forward_index(page_id, word_id, frequency, positions, table):
     else:
         print("Invalid table name. Please choose from forwardIndex_body or forwardIndex_title.")
 
-def populate_inverted_index(word_id, page_freq, table):
+def populate_inverted_index(word, page_freq, table):
     if table in ['invertedIndex_body', 'invertedIndex_title']:
+        word_id = get_id('stemmed_mapping', word, 'word')
         cursor.execute(f"""
             INSERT INTO {table} (word_id, pages_freq)
             VALUES (?, ?)
