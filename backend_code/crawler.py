@@ -4,7 +4,6 @@ from urllib.parse import urljoin
 from datetime import datetime
 import re
 import sqlite3
-import json
 
 class Crawler:
     def __init__(self, base_url, num_pages):
@@ -22,13 +21,15 @@ class Crawler:
         if page_id:
             return page_id
         else:
-            return False
+            return None
 
-    def last_modified_date_checker(self, url, last_modified_date):
+    def last_modified_date_checker(self,last_modified_date, url):
         page_id = self.page_id_exists(url)
-        self.c.execute("SELECT last_modified FROM page_info WHERE page_id = ?", (page_id,))
+        print(page_id)
+        self.c.execute("SELECT last_modified FROM page_info WHERE page_id = ?", (page_id[0],))
         prev_last_modified_date = self.c.fetchone()
-        prev_last_modified_date = datetime.strptime(prev_last_modified_date, '%a, %d %b %Y %H:%M:%S %Z')
+        print(prev_last_modified_date[0])
+        prev_last_modified_date = datetime.strptime(prev_last_modified_date[0], '%Y-%m-%d %H:%M:%S')
         if last_modified_date > prev_last_modified_date:
             return True
         else:
@@ -51,9 +52,7 @@ class Crawler:
             title = soup_obj.title.string
         else:
             title = ""
-
         body = soup_obj.find('body')
-        # todo : remove special characters 
 
         if body:
             body_text = ' '.join(body.stripped_strings)
@@ -70,41 +69,21 @@ class Crawler:
         # remove special characters
         body_text = re.sub(r'[^a-zA-Z0-9\s]+',' ', body_text)
         return title, body_text
-
-    def bfs_extract(self):
-        # extract the number of pages using BFS
-        visited_urls = set()
-        unvisited_urls = [self.base_url]
-
-        while unvisited_urls and len(visited_urls) < self.num_pages:
-            curr_url = unvisited_urls.pop(0)
-
-            if curr_url in visited_urls:
-                continue
-
-            new_links = self.crawl(curr_url)
-            visited_urls.add(curr_url)
-
-            unvisited_urls.extend(new_links)
-        
-        return visited_urls
     
     def crawl(self, url):
         try:
-            # TODO: DEFINE RULES FOR FETCHING
+            response = requests.get(url)
+            response.raise_for_status()            
             page_id = self.page_id_exists(url)
+
             if page_id != None:
-                return None
-            response = requests.get(url) # make get request to link to get the data.
-            response.raise_for_status()
+              last_modified_date = self.get_last_modified_date(url) 
+              date_result = self.last_modified_date_checker(last_modified_date, url) 
+              if date_result == False: 
+                  return None
             
             beautiful_soup = BeautifulSoup(response.content, "html.parser")
-            page_counter = 0
-            last_modified_date = self.get_last_modified_date(url)
-            date_result = self.last_modified_date_checker(url, last_modified_date)
-            if date_result == False:
-                return None
-
+            page_counter = 0            
             links = []
             for link in beautiful_soup.find_all("a", href=True):
                 child_link = urljoin(url, link["href"])
@@ -115,3 +94,21 @@ class Crawler:
         
         except requests.exceptions.RequestException:
             return None
+
+    def bfs_extract(self):
+        # extract the number of pages using BFS
+        visited_urls = set()
+        unvisited_urls = [self.base_url]
+        while unvisited_urls and len(visited_urls) < self.num_pages:
+            curr_url = unvisited_urls.pop(0)
+            if curr_url in visited_urls:
+                continue
+
+            new_links = self.crawl(curr_url)
+            if new_links == None:
+                continue
+            visited_urls.add(curr_url)
+
+            unvisited_urls.extend(new_links)
+        
+        return visited_urls

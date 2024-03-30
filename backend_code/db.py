@@ -88,13 +88,13 @@ def populate_mapping(attribute, table):
         cursor.execute(f"SELECT * FROM {table} WHERE url = ?", (attribute,))
         data = cursor.fetchone()
         if data is None:
-            cursor.execute(f"INSERT INTO {table} (url) VALUES (?)", (attribute,))
+            cursor.execute(f"INSERT or REPLACE INTO {table} (url) VALUES (?)", (attribute,))
             conn.commit()
     elif table in ['stemmed_mapping', 'non_stemmed_mapping']:
         cursor.execute(f"SELECT * FROM {table} WHERE word = ?", (attribute,))
         data = cursor.fetchone()
         if data is None:
-            cursor.execute(f"INSERT INTO {table} (word) VALUES (?)", (attribute,))
+            cursor.execute(f"INSERT or REPLACE INTO {table} (word) VALUES (?)", (attribute,))
             conn.commit()
     else:
         print("Invalid table name. Please choose from page_mapping, stemmed_mapping or non_stemmed_mapping.")
@@ -108,7 +108,7 @@ def get_id(table, data, attribute):
     cursor.execute(f"SELECT rowid FROM {table} WHERE {attribute} = ?", (data,))
     data = cursor.fetchone()
     if data is None:
-        cursor.execute(f"INSERT INTO {table} ({attribute}) VALUES (?)", (data,))
+        cursor.execute(f"INSERT or REPLACE INTO {table} ({attribute}) VALUES (?)", (data,))
         conn.commit()
         cursor.execute(f"SELECT last_insert_rowid() FROM {table}")
         data = cursor.fetchone()
@@ -123,7 +123,7 @@ def populate_pageinfo(pages):
     for url, info in pages.items():
         page_id = get_id('page_mapping', url, 'url')
         cursor.execute("""
-            INSERT INTO page_info (page_id, page_size, last_modified, title, body, child_links)
+            INSERT or REPLACE INTO page_info (page_id, page_size, last_modified, title, body, child_links)
             VALUES (?, ?, ?, ?, ?, ?)
         """, (page_id, info['page_size'], info['last_modified'], info['title'], info['body'], ','.join(info['child_links'])))
     
@@ -138,7 +138,7 @@ def populate_forward_index(url, word, frequency, positions, table):
         page_id = get_id('page_mapping', url, 'url')
         word_id = get_id('stemmed_mapping', word, 'word')
         cursor.execute(f"""
-            INSERT INTO {table} (page_id, word_id, frequency, positions)
+            INSERT or REPLACE INTO {table} (page_id, word_id, frequency, positions)
             VALUES (?, ?, ?, ?)
         """, (page_id, word_id, frequency, ','.join(map(str, positions))))
         conn.commit()
@@ -154,7 +154,7 @@ def populate_inverted_index(word, page_freq, table):
     if table in ['invertedIndex_body', 'invertedIndex_title']:
         word_id = get_id('stemmed_mapping', word, 'word')
         cursor.execute(f"""
-            INSERT INTO {table} (word_id, pages_freq)
+            INSERT or REPLACE INTO {table} (word_id, pages_freq)
             VALUES (?, ?)
         """, (word_id, page_freq))
         conn.commit()
