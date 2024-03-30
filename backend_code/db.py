@@ -137,5 +137,5 @@ def populate_inverted_index(word, page_freq, table):
     else:
         print("Invalid table name. Please choose from invertedIndex_body or invertedIndex_title.")
 
-create_tables()
+# create_tables()
 conn.close()

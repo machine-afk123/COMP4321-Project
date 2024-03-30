@@ -1,6 +1,7 @@
 # from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 from nltk.tokenize import word_tokenize
+from collections import defaultdict
 import requests
 from bs4 import BeautifulSoup
 import json
@@ -14,7 +15,7 @@ import db
 
 def get_stopwords():
     stopword_list = []
-    with open("stopwords.txt") as file_obj:
+    with open("COMP4321-Project\\backend_code\\stopwords.txt") as file_obj:
         stopwords = file_obj.readline()
 
     for word in stopwords:
@@ -53,6 +54,31 @@ def index(crawler_text):
 
     return preprocessed_words
 
+def word_dict(words):
+    word_dict = defaultdict(lambda: {'frequency': 0, 'positions': []})
+
+    for i, word in enumerate(words):
+        word_dict[word]['frequency'] += 1
+        word_dict[word]['positions'].append(i)
+
+    return word_dict
+
+def create_inverted_index(forward_index_body, forward_index_title):
+    inverted_index_body = defaultdict(lambda: defaultdict(list))
+    inverted_index_title = defaultdict(lambda: defaultdict(list))
+
+    for url, word_dict in forward_index_body.items():
+        for word, info in word_dict.items():
+            inverted_index_body[word][url].append(info['frequency'])
+            inverted_index_body[word][url].append(info['positions'])
+
+    for url, word_dict in forward_index_title.items():
+        for word, info in word_dict.items():
+            inverted_index_title[word][url].append(info['frequency'])
+            inverted_index_title[word][url].append(info['positions'])
+
+    return inverted_index_body, inverted_index_title
+
 def create_index():
     # page_mapping - populate_mapping(attribute, "page_mapping") - one by one
     # stemmed_mapping - populate_mapping(attribute, "stemmed_mapping") - one by one
@@ -81,11 +107,17 @@ def create_index():
 
     # invertedIndex_body - populate_inverted_index(word_id, page_body_freq, "invertedIndex_body") - one by one
     # invertedIndex_title - populate_inverted_index(word_id, page_title_freq, "invertedIndex_title") - one by one
-    # pages = {
-    #     'page1': [3, [1, 4, 15]],
-    #     'page2': [2, [21, 37]],
+    # word = {
+    #     'word1': {
+    #         'page1': [3, [1, 4, 15]],
+    #         'page2': [2, [21, 37]],
+    #     },
+    #     'word2': {
+    #         'page1': [1, [3]],
+    #         'page2': [2, [5, 11]],
+    #     }
     # }
-    # page_body_freq = json.dumps(pages)
+    # page_freq = json.dumps(for each inner dictionary within the word dictionary)
 
     base_url = "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm"
     num_pages = 30
@@ -98,7 +130,7 @@ def create_index():
     for page_url in extracted_links:
         response = requests.get(page_url) # make get request to link to get the data.
         response.raise_for_status()
-        page_size = len(response.content)
+        page_size = len(response.content) # Does this work everytime?
         beautiful_soup = BeautifulSoup(response.content, "html.parser")
         title, body = web_crawler.get_content(beautiful_soup)
         pages[page_url] = {
@@ -123,6 +155,32 @@ def create_index():
 
     db.populate_pageinfo(pages)
 
+    forward_index_body = {}
+    forward_index_title = {}
+
+    for url, page_info in pages:
+        processed_body = index(page_info['body'])
+        processed_title = index(page_info['title'])
+        body_dict = word_dict(processed_body)
+        title_dict = word_dict(processed_title)
+        for word, info in body_dict.items():
+            db.populate_forward_index(url, word, info['frequency'], info['positions'], "forwardIndex_body")
+            forward_index_body[url][word] = {
+                'frequency': info['frequency'], 
+                'positions': info['positions']
+            }
+        for word, info in title_dict.items():
+            db.populate_forward_index(url, word, info['frequency'], info['positions'], "forwardIndex_title")
+            forward_index_title[url][word] = {
+                'frequency': info['frequency'], 
+                'positions': info['positions']
+            }
+        
+    inverted_index_body, inverted_index_title = create_inverted_index(forward_index_body, forward_index_title)
+    for word in inverted_index_body:
+        db.populate_inverted_index(word, json.dumps(inverted_index_body[word]), "invertedIndex_body")
+    for word in inverted_index_title:
+        db.populate_inverted_index(word, json.dumps(inverted_index_title[word]), "invertedIndex_title")
     
          
 
