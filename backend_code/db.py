@@ -28,6 +28,7 @@ def create_tables():
     cursor.execute("""
         CREATE TABLE page_info (
             page_id INTEGER PRIMARY KEY,
+            page_size INTEGER,
             last_modified TEXT,
             title TEXT,
             body TEXT,
@@ -63,7 +64,7 @@ def create_tables():
     cursor.execute("""
         CREATE TABLE invertedIndex_body (
             word_id INTEGER PRIMARY KEY,
-            pages_body_freq TEXT,
+            pages_freq TEXT,
             FOREIGN KEY(word_id) REFERENCES stemmed_mapping(word_id)
         )
     """)
@@ -71,7 +72,7 @@ def create_tables():
     cursor.execute("""
         CREATE TABLE invertedIndex_title (
             word_id INTEGER PRIMARY KEY,
-            pages_title_freq TEXT,
+            pages_freq TEXT,
             FOREIGN KEY(word_id) REFERENCES stemmed_mapping(word_id)
         )
     """)
@@ -97,9 +98,9 @@ def populate_mapping(attribute, table):
 def populate_pageinfo(pages):
     for page_id, info in pages.items():
         cursor.execute("""
-            INSERT INTO page_info (page_id, last_modified, title, body, child_links)
+            INSERT INTO page_info (page_id, page_size, last_modified, title, body, child_links)
             VALUES (?, ?, ?, ?, ?)
-        """, (page_id, info['last_modified'], info['title'], info['body'], ','.join(info['child_links'])))
+        """, (page_id, info['page_size'], info['last_modified'], info['title'], info['body'], ','.join(info['child_links'])))
     conn.commit()
 
 def populate_forward_index(page_id, word_id, frequency, positions, table):
@@ -115,7 +116,7 @@ def populate_forward_index(page_id, word_id, frequency, positions, table):
 def populate_inverted_index(word_id, page_body_freq, table):
     if table in ['invertedIndex_body', 'invertedIndex_title']:
         cursor.execute(f"""
-            INSERT INTO {table} (word_id, pages_body_freq)
+            INSERT INTO {table} (word_id, pages_freq)
             VALUES (?, ?)
         """, (word_id, page_body_freq))
         conn.commit()
