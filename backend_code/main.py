@@ -4,8 +4,8 @@ import sqlite3
 import json
     
 def main():
-    # db.create_tables()
-    # indexer.create_index()
+    db.create_tables()
+    indexer.create_index()
 
     db_conn = sqlite3.connect('web_crawler.db')
     c = db_conn.cursor()    
