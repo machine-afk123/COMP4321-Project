@@ -14,7 +14,7 @@ nltk.download('punkt') # Uncomment if packages already exist
 
 def get_stopwords():
     stopword_list = []
-    with open("stopwords.txt") as file_obj: # change to path where stopwords.txt is stored if necessary
+    with open("backend_code\stopwords.txt") as file_obj: # change to path where stopwords.txt is stored if necessary
         for line in file_obj:
             stopword = line.strip()
             stopword_list.append(stopword)
