@@ -44,7 +44,7 @@ def main():
     
     c.execute("SELECT page_id, page_size, last_modified,title, child_links FROM page_info")
     rows = c.fetchall()
-    with open('spider.txt', 'w') as f_obj:
+    with open('spider_result.txt', 'w') as f_obj:
         for row in rows:
             page_id = row[0]
             f_obj.write(f"{row[3]}\n")

@@ -1,4 +1,5 @@
 # from nltk.corpus import stopwords
+import nltk
 from nltk.stem.porter import PorterStemmer
 from nltk.tokenize import word_tokenize
 from collections import defaultdict
@@ -7,7 +8,6 @@ from bs4 import BeautifulSoup
 import json
 import crawler
 import db
-import nltk
 
 # download necessary packages
 nltk.download('punkt') # Uncomment if packages already exist

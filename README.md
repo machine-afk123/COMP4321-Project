@@ -32,20 +32,11 @@
 ##### By default our program crawls 30 pages but if you would like to test the crawler to scrape more pages you can modify the `num_pages` parameter in the `create_index()` function in the indexer.py. We have left a comment to indicate where you can change the parameter within the indexer.py file.
 ##### For more reference, the line to modify `num_pages` in indexer.py (it is the second line within the create_index function)
 ```
-    num_pages = 30 # MODIFY THIS PARAMETER TO CHANGE THE num_pages
+num_pages = 30 # MODIFY THIS PARAMETER TO CHANGE THE num_pages
 ```
  ##### To run the main file on your terminal or command prompt:
- ##### 1. Navigate to the directory where this project is stored
- ```
-  cd path/to/COMP4321-Project
+##### 1. Run the main.py file
 ```
- ##### 2. Navigate to the backend_code directoy.
- ```
-    cd backend_code
+python backend_code\main.py
 ```
-##### 3. Run the main.py file
-```
-  python main.py
-```
-#### 4. Examine spider.txt, it should be stored in backend_code directory
-
+#### 2. Examine spider.txt, it should be stored in backend_code directory
