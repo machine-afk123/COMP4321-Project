@@ -39,4 +39,4 @@ num_pages = 30 # MODIFY THIS PARAMETER TO CHANGE THE num_pages
 ```
 python backend_code\main.py
 ```
-#### 2. Examine 'spider_result.txt', it should be stored in backend_code directory
+#### 2. Examine 'spider_result.txt', it should be stored in the COMP4321-Project directory
