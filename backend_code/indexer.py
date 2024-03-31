@@ -7,6 +7,10 @@ from bs4 import BeautifulSoup
 import json
 import crawler
 import db
+import nltk
+
+# download necessary packages
+nltk.download('punkt') # Uncomment if packages already exist
 
 def get_stopwords():
     stopword_list = []
@@ -80,7 +84,7 @@ def create_inverted_index(forward_index_body, forward_index_title):
 
 def create_index():
     base_url = "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm"
-    num_pages = 30
+    num_pages = 30 # MODIFY THIS PARAMETER TO CHANGE THE num_pages
     web_crawler = crawler.Crawler(base_url, num_pages)
     
     extracted_links = web_crawler.bfs_extract()
