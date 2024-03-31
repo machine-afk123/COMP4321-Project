@@ -10,7 +10,7 @@ import db
 
 def get_stopwords():
     stopword_list = []
-    with open("/Users/Joshua/Documents/GitHub/COMP4321-Project/backend_code/stopwords.txt") as file_obj:
+    with open("COMP4321-Project\\backend_code\\stopwords.txt") as file_obj: # change to path where stopwords.txt is stored if necessary
         for line in file_obj:
             stopword = line.strip()
             stopword_list.append(stopword)
