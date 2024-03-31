@@ -24,12 +24,28 @@
 ##### To install nltk we could execute `pip install nltk` or `pip install --user -U nltk` (for more information: https://www.nltk.org/install.html)
 ##### To install requests execute `pip install requests` (for more information: https://pypi.org/project/requests/)
 
-##### Additional Note for nltk - In order to ensure the nltk packages work properly, it is recommended to first `import nltk` and then execute `nltk.download('punkt')`, more information for downloading the necessary packages can be found at https://www.nltk.org/data.html
+##### Additional Note for nltk - In order to ensure the nltk packages work properly, it is recommended to first `import nltk` and then execute `nltk.download('punkt')`, more information for downloading the necessary packages can be found at https://www.nltk.org/data.html. We have added this code to the indexer.py so it will download the necessary nltk packages to run the program. If you already have these packages installed, you may uncomment this line.
 
 ### Running or Testing the Crawler (phase 1)
 #### Before running or Testing the crawler please ensure to have the necessary libraries mentioned above installed.
-#### As mentioned above we use the main.py file to create our tables and run the crawler as well as the necessary indexing functions to preprocess data and create 
-
-
-
+#### As mentioned above we use the main.py file to create our tables and run the crawler as well as the necessary indexing functions to preprocess data and create and populate the tables within our database.
+#### By default our program crawls 30 pages but if you would like to test the crawler to scrape more pages you can modify the `num_pages` parameter in the `create_index()` function in the indexer.py. We have left a comment to indicate where you can change the parameter within the indexer.py file.
+#### For more reference, the line to modify `num_pages` in indexer.py (it is the second line within the create_index function)
+```
+    num_pages = 30 # MODIFY THIS PARAMETER TO CHANGE THE num_pages
+```
+ #### To run the main file on your terminal or command prompt:
+ #### 1. Navigate to the directory where this project is stored
+ ```
+  cd path/to/COMP4321-Project
+```
+ #### 2. Navigate to the backend_code directoy.
+ ```
+    cd backend_code
+```
+#### 3. Run the main.py file
+```
+  python main.py
+```
+#### 4. Examine spider.txt, it should be stored in backend_code directory
 
