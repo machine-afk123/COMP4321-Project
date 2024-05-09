@@ -4,11 +4,9 @@ import sqlite3
 import json
     
 def main():
-    db.create_tables()
-    indexer.create_index()
-
-    db_conn = sqlite3.connect('web_crawler.db')
-    c = db_conn.cursor()    
+    conn, c = db.init_connection()
+    db.create_tables(conn, c)
+    indexer.create_index()  
     c.execute("SELECT word_id, pages_freq FROM invertedIndex_body")
     rows = c.fetchall()
 
@@ -72,7 +70,8 @@ def main():
 
             f_obj.write("-------------------------------------------------------------------\n")
     
-    db_conn.close()
+
+    db.close_connection(conn)
 
 if __name__ == "__main__":
     main()

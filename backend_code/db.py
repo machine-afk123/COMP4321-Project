@@ -1,9 +1,46 @@
 import sqlite3
+from threading import Lock
 
-def create_tables():
-    conn = sqlite3.connect('web_crawler.db')
+class ConnectionPool:
+    def __init__(self, db_file, max_connections=15):
+        self.db_file = db_file
+        self.max_connections = max_connections
+        self.pool = []
+        self.lock = Lock()
+
+    def get_connection(self):
+        with self.lock:
+            if self.pool:
+                return self.pool.pop()
+            elif len(self.pool) < self.max_connections:
+                conn = sqlite3.connect(self.db_file, check_same_thread=False)
+                return conn
+            else:
+                raise RuntimeError("Maximum number of connections reached")
+
+    def release_connection(self, conn):
+        with self.lock:
+            self.pool.append(conn)
+
+    def close_all_connections(self):
+        with self.lock:
+            for conn in self.pool:
+                conn.close()
+            self.pool.clear()
+
+# Create a connection pool
+pool = ConnectionPool('web_crawler.db', max_connections=10)
+
+def init_connection():
+    conn = pool.get_connection()
     cursor = conn.cursor()
+    return conn, cursor
 
+def close_connection(conn):
+    pool.release_connection(conn)
+
+
+def create_tables(conn, cursor):
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS page_mapping (
             page_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,34 +114,27 @@ def create_tables():
         )
     """)
 
-    conn.commit()
-    conn.close()
-
-def populate_mapping(attribute, table):
-    conn = sqlite3.connect('web_crawler.db')
-    cursor = conn.cursor()
-
+def populate_mapping(conn, cursor, attributes, table):
     if table == 'page_mapping':
-        cursor.execute(f"SELECT * FROM {table} WHERE url = ?", (attribute,))
-        data = cursor.fetchone()
-        if data is None:
-            cursor.execute(f"INSERT or REPLACE INTO {table} (url) VALUES (?)", (attribute,))
+        attribute_set = set(attributes)
+        cursor.execute(f"SELECT url FROM {table} WHERE url IN ({','.join(['?'] * len(attribute_set))})", tuple(attribute_set))
+        existing_urls = set(row[0] for row in cursor.fetchall())
+        new_urls = attribute_set - existing_urls
+        if new_urls:
+            cursor.executemany(f"INSERT or REPLACE INTO {table} (url) VALUES (?)", [(url,) for url in new_urls])
             conn.commit()
     elif table in ['stemmed_mapping', 'non_stemmed_mapping']:
-        cursor.execute(f"SELECT * FROM {table} WHERE word = ?", (attribute,))
-        data = cursor.fetchone()
-        if data is None:
-            cursor.execute(f"INSERT or REPLACE INTO {table} (word) VALUES (?)", (attribute,))
+        attribute_set = set(attributes)
+        cursor.execute(f"SELECT word FROM {table} WHERE word IN ({','.join(['?'] * len(attribute_set))})", tuple(attribute_set))
+        existing_words = set(row[0] for row in cursor.fetchall())
+        new_words = attribute_set - existing_words
+        if new_words:
+            cursor.executemany(f"INSERT or REPLACE INTO {table} (word) VALUES (?)", [(word,) for word in new_words])
             conn.commit()
     else:
         print("Invalid table name. Please choose from page_mapping, stemmed_mapping or non_stemmed_mapping.")
 
-    conn.close()
-
-def get_id(table, data, attribute):
-    conn = sqlite3.connect('web_crawler.db')
-    cursor = conn.cursor()
-
+def get_id(conn, cursor, table, data, attribute):
     cursor.execute(f"SELECT rowid FROM {table} WHERE {attribute} = ?", (data,))
     data = cursor.fetchone()
     if data is None:
@@ -113,30 +143,20 @@ def get_id(table, data, attribute):
         cursor.execute(f"SELECT last_insert_rowid() FROM {table}")
         data = cursor.fetchone()
 
-    conn.close()
     return data[0]
 
-def populate_pageinfo(pages):
-    conn = sqlite3.connect('web_crawler.db')
-    cursor = conn.cursor()
-
+def populate_pageinfo(conn, cursor, pages):
     for url, info in pages.items():
-        page_id = get_id('page_mapping', url, 'url')
+        page_id = get_id(conn, cursor, 'page_mapping', url, 'url')
         cursor.execute("""
             INSERT or REPLACE INTO page_info (page_id, page_size, last_modified, title, body, child_links)
             VALUES (?, ?, ?, ?, ?, ?)
         """, (page_id, info['page_size'], info['last_modified'], info['title'], info['body'], ','.join(info['child_links'])))
-    
-    conn.commit()
-    conn.close()
 
-def populate_forward_index(url, word, frequency, positions, table):
-    conn = sqlite3.connect('web_crawler.db')
-    cursor = conn.cursor()
-
+def populate_forward_index(conn, cursor, url, word, frequency, positions, table):
     if table in ['forwardIndex_body', 'forwardIndex_title']:
-        page_id = get_id('page_mapping', url, 'url')
-        word_id = get_id('stemmed_mapping', word, 'word')
+        page_id = get_id(conn, cursor, 'page_mapping', url, 'url')
+        word_id = get_id(conn, cursor, 'stemmed_mapping', word, 'word')
         cursor.execute(f"""
             INSERT or REPLACE INTO {table} (page_id, word_id, frequency, positions)
             VALUES (?, ?, ?, ?)
@@ -145,14 +165,9 @@ def populate_forward_index(url, word, frequency, positions, table):
     else:
         print("Invalid table name. Please choose from forwardIndex_body or forwardIndex_title.")
 
-    conn.close()
-
-def populate_inverted_index(word, page_freq, table):
-    conn = sqlite3.connect('web_crawler.db')
-    cursor = conn.cursor()
-
+def populate_inverted_index(conn, cursor, word, page_freq, table):
     if table in ['invertedIndex_body', 'invertedIndex_title']:
-        word_id = get_id('stemmed_mapping', word, 'word')
+        word_id = get_id(conn, cursor, 'stemmed_mapping', word, 'word')
         cursor.execute(f"""
             INSERT or REPLACE INTO {table} (word_id, pages_freq)
             VALUES (?, ?)
@@ -160,5 +175,3 @@ def populate_inverted_index(word, page_freq, table):
         conn.commit()
     else:
         print("Invalid table name. Please choose from invertedIndex_body or invertedIndex_title.")
-
-    conn.close()

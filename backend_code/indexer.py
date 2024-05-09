@@ -9,12 +9,17 @@ import json
 import crawler
 import db
 
-# download necessary packages
-nltk.download('punkt') # Uncomment if packages already exist
+try:
+    nltk.data.find('tokenizers/punkt')
+    print("Punkt tokenizer is already downloaded.")
+except LookupError:
+    print("Downloading punkt tokenizer...")
+    nltk.download('punkt')
+    print("Punkt tokenizer downloaded successfully.")
 
 def get_stopwords():
     stopword_list = []
-    with open("backend_code\stopwords.txt") as file_obj: # change to path where stopwords.txt is stored if necessary
+    with open("stopwords.txt") as file_obj: # change to path where stopwords.txt is stored if necessary
         for line in file_obj:
             stopword = line.strip()
             stopword_list.append(stopword)
@@ -83,73 +88,74 @@ def create_inverted_index(forward_index_body, forward_index_title):
     return inverted_index_body, inverted_index_title
 
 def create_index():
-    base_url = "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm"
-    num_pages = 30 # MODIFY THIS PARAMETER TO CHANGE THE num_pages
-    web_crawler = crawler.Crawler(base_url, num_pages)
-    
-    extracted_links = web_crawler.bfs_extract()
-    extracted_links = sorted(extracted_links)
-    text = ""
-    pages = {}
-    for page_url in extracted_links:
-        response = requests.get(page_url)
-        response.raise_for_status()
-        page_size = len(response.content) 
-        beautiful_soup = BeautifulSoup(response.content, "html.parser")
-        title, body = web_crawler.get_content(beautiful_soup)
-        pages[page_url] = {
-            'page_size': page_size,
-            'last_modified': web_crawler.get_last_modified_date(page_url),
-            'title': title,
-            'body': body,
-            'child_links': web_crawler.crawl(page_url)
-        }
-        text += title + " " + body + " "
-    
-    non_stemmed_words = stopword_remover(text)
-    for word in non_stemmed_words:
-        db.populate_mapping(word, "non_stemmed_mapping")
-    
-    stemmed_words = stemmer(non_stemmed_words)
-    for word in stemmed_words:
-        db.populate_mapping(word, "stemmed_mapping")
-
-    for url in pages:
-        db.populate_mapping(url, "page_mapping")
-
-    db.populate_pageinfo(pages)
-
-    forward_index_body = {}
-    forward_index_title = {}
-
-    for url, page_info in pages.items():
-        processed_body = index(page_info['body'])
-        processed_title = index(page_info['title'])
-        body_dict = word_dict(processed_body)
-        title_dict = word_dict(processed_title)
-
-        forward_index_body[url] = {}
-        for word, info in body_dict.items():
-            db.populate_forward_index(url, word, info['frequency'], info['positions'], "forwardIndex_body")
-            forward_index_body[url][word] = {
-                'frequency': info['frequency'], 
-                'positions': info['positions']
-            }
-
-        forward_index_title[url] = {}
-        for word, info in title_dict.items():
-            db.populate_forward_index(url, word, info['frequency'], info['positions'], "forwardIndex_title")
-            forward_index_title[url][word] = {
-                'frequency': info['frequency'], 
-                'positions': info['positions']
-            }
+    conn, cursor = db.init_connection()
+    try:
+        base_url = "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm"
+        num_pages = 300 # MODIFY THIS PARAMETER TO CHANGE THE num_pages
+        web_crawler = crawler.Crawler(base_url, num_pages)
         
-    inverted_index_body, inverted_index_title = create_inverted_index(forward_index_body, forward_index_title)
-    for word in inverted_index_body:
-        serialized_body_json =  json.dumps(inverted_index_body[word])
-        db.populate_inverted_index(word, serialized_body_json, "invertedIndex_body")
-    for word in inverted_index_title:
-        serialized_title_json = json.dumps(inverted_index_title[word])
-        db.populate_inverted_index(word, serialized_title_json, "invertedIndex_title")
+        extracted_links = web_crawler.bfs_extract()
+        extracted_links = sorted(extracted_links)
+        text = ""
+        pages = {}
+        for page_url in extracted_links:
+            response = requests.get(page_url)
+            response.raise_for_status()
+            page_size = len(response.content) 
+            beautiful_soup = BeautifulSoup(response.content, "html.parser")
+            title, body = web_crawler.get_content(beautiful_soup)
+            pages[page_url] = {
+                'page_size': page_size,
+                'last_modified': web_crawler.get_last_modified_date(page_url),
+                'title': title,
+                'body': body,
+                'child_links': web_crawler.crawl(page_url)
+            }
+            text += title + " " + body + " "
+        
+        non_stemmed_words = stopword_remover(text)
+        db.populate_mapping(conn, cursor, non_stemmed_words, "non_stemmed_mapping")
 
-    web_crawler.close_connection()
+        
+        stemmed_words = stemmer(non_stemmed_words)
+        db.populate_mapping(conn, cursor, stemmed_words, "stemmed_mapping")
+
+        db.populate_mapping(conn, cursor, pages.keys(), "page_mapping")
+
+        db.populate_pageinfo(conn, cursor, pages)
+
+        forward_index_body = {}
+        forward_index_title = {}
+
+        for url, page_info in pages.items():
+            processed_body = index(page_info['body'])
+            processed_title = index(page_info['title'])
+            body_dict = word_dict(processed_body)
+            title_dict = word_dict(processed_title)
+
+            forward_index_body[url] = {}
+            for word, info in body_dict.items():
+                db.populate_forward_index(conn, cursor, url, word, info['frequency'], info['positions'], "forwardIndex_body")
+                forward_index_body[url][word] = {
+                    'frequency': info['frequency'], 
+                    'positions': info['positions']
+                }
+
+            forward_index_title[url] = {}
+            for word, info in title_dict.items():
+                db.populate_forward_index(conn, cursor, url, word, info['frequency'], info['positions'], "forwardIndex_title")
+                forward_index_title[url][word] = {
+                    'frequency': info['frequency'], 
+                    'positions': info['positions']
+                }
+            
+        inverted_index_body, inverted_index_title = create_inverted_index(forward_index_body, forward_index_title)
+        for word in inverted_index_body:
+            serialized_body_json =  json.dumps(inverted_index_body[word])
+            db.populate_inverted_index(conn, cursor, word, serialized_body_json, "invertedIndex_body")
+        for word in inverted_index_title:
+            serialized_title_json = json.dumps(inverted_index_title[word])
+            db.populate_inverted_index(conn, cursor, word, serialized_title_json, "invertedIndex_title")
+    finally:
+        db.close_connection(conn)
+        web_crawler.close_connection()
