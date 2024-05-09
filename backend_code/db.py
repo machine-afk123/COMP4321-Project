@@ -2,7 +2,7 @@ import sqlite3
 from threading import Lock
 
 class ConnectionPool:
-    def __init__(self, db_file, max_connections=15):
+    def __init__(self, db_file, max_connections=30):
         self.db_file = db_file
         self.max_connections = max_connections
         self.pool = []
@@ -29,7 +29,7 @@ class ConnectionPool:
             self.pool.clear()
 
 # Create a connection pool
-pool = ConnectionPool('web_crawler.db', max_connections=10)
+pool = ConnectionPool('web_crawler.db', max_connections=30)
 
 def init_connection():
     conn = pool.get_connection()
