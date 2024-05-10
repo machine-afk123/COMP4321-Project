@@ -19,7 +19,7 @@ except LookupError:
 
 def get_stopwords():
     stopword_list = []
-    with open("stopwords.txt") as file_obj: # change to path where stopwords.txt is stored if necessary
+    with open("C:\\Users\\Joshua Serrao\\Documents\\GitHub\\COMP4321-Project\\backend_code\\stopwords.txt") as file_obj: # change to path where stopwords.txt is stored if necessary
         for line in file_obj:
             stopword = line.strip()
             stopword_list.append(stopword)
@@ -28,7 +28,10 @@ def get_stopwords():
 
 def stopword_remover(text):
     stopwords = get_stopwords()
-    tokenized_words = word_tokenize(text)
+    if type(text) != list:
+        tokenized_words = word_tokenize(text)
+    else:
+        tokenized_words = text
     filtered_words = []
     for word in tokenized_words:
         if word not in stopwords:
@@ -87,11 +90,13 @@ def create_inverted_index(forward_index_body, forward_index_title):
 
     return inverted_index_body, inverted_index_title
 
-def create_index():
-    conn, cursor = db.init_connection()
+def create_index(conn, cursor):
+    # conn, cursor = db.init_connection()
     try:
         base_url = "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm"
+        # base_url = "https://www.cse.ust.hk/~kwtleung/COMP4321/Movie.htm"
         num_pages = 300 # MODIFY THIS PARAMETER TO CHANGE THE num_pages
+        # num_pages = 1
         web_crawler = crawler.Crawler(base_url, num_pages)
         
         extracted_links = web_crawler.bfs_extract()
