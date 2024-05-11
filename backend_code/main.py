@@ -53,17 +53,9 @@ def main():
     query_term, query_phrase = handle_query('"Movie Index Page"')
     print(query_term)
     print(query_phrase)
-    result = engine.retrieval_function(query_term, query_phrase)
+    result = engine.retrieval(query_term, query_phrase)
     # generate component cards for each page result.
-   
-    # c.execute("SELECT word_id, pages_freq FROM invertedIndex_body")
-    # body_rows = c.fetchall()
-    # c.execute("SELECT word_id, pages_freq FROM invertedIndex_title")
-    # title_rows = c.fetchall()
 
-    # c.execute("SELECT ")
-
-    
     print(result)
 
     # result_front_end = []

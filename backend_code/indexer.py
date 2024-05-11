@@ -19,7 +19,7 @@ except LookupError:
 
 def get_stopwords():
     stopword_list = []
-    with open("C:\\Users\\Joshua Serrao\\Documents\\GitHub\\COMP4321-Project\\backend_code\\stopwords.txt") as file_obj: # change to path where stopwords.txt is stored if necessary
+    with open("stopwords.txt") as file_obj: # change to path where stopwords.txt is stored if necessary
         for line in file_obj:
             stopword = line.strip()
             stopword_list.append(stopword)
@@ -56,6 +56,15 @@ def index(crawler_text):
     preprocessed_words = stemmer(filtered_words)
 
     return preprocessed_words
+
+def phrase_stemmer(query_phrases): # list of queries ["Movie Index Page", "Another Query"]
+    stemmed_queries = []
+    for query in query_phrases:
+        preprocessed_query_words = index(query)
+        stem_text = " ".join(preprocessed_query_words)
+        stemmed_queries.append(stem_text)
+    
+    return stemmed_queries # ["movie index pag"]
 
 def word_dict(words):
     word_dict = defaultdict(lambda: {'frequency': 0, 'positions': []})
