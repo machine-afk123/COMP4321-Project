@@ -13,7 +13,7 @@ class ConnectionPool:
             if self.pool:
                 return self.pool.pop()
             elif len(self.pool) < self.max_connections:
-                conn = sqlite3.connect(self.db_file, check_same_thread=True)
+                conn = sqlite3.connect(self.db_file, check_same_thread=False)
                 return conn
             else:
                 raise RuntimeError("Maximum number of connections reached")

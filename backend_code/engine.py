@@ -4,13 +4,9 @@ import sqlite3
 import indexer
 import math
 from collections import defaultdict
-from nltk.stem import PorterStemmer
-import numpy
 
-# db_conn = sqlite3.connect('web_crawler.db')
-# c = db_conn.cursor()   
-
-db_conn, c = db.init_connection()
+db_conn = sqlite3.connect('web_crawler.db', check_same_thread=False)
+c = db_conn.cursor()   
 
 def get_page_id_mappings():
     c.execute("SELECT page_id, url FROM page_mapping")
@@ -32,6 +28,67 @@ def get_word_id_mappings():
         word_id_mapping[row[0]] = row[1]
 
     return word_id_mapping # dict -> {word_id : word}
+
+def get_page_info(page_ids):
+    c.execute("SELECT word_id, pages_freq FROM invertedIndex_body")
+    rows_inv_index_body = c.fetchall()
+    c.execute("SELECT word_id, pages_freq FROM invertedIndex_title")
+    rows_inv_index_title = c.fetchall()
+    c.execute("SELECT page_id, page_size, last_modified, title, child_links FROM page_info")
+    rows_page_info = c.fetchall()
+    page_mappings = get_page_id_mappings()
+
+    word_mappings = get_word_id_mappings()
+
+    page_info_dict = {}
+
+    for row in rows_page_info:
+        page_info_dict[row[0]] = [row[1], row[2], row[3], row[4].split(',')]
+
+    result_dict = {} # result_dict -> {page_id : title, url, last_modified, page_size, {keyword : freq}, [parent_links], [child_links]}
+
+    for page_id in page_ids: 
+        keyword_freq_map = {}
+
+        for row in rows_inv_index_body:
+            pages_freq = json.loads(row[1])
+            for page, info in pages_freq.items():
+                if page == page_mappings[page_id]:
+                    freq = info[0]
+                    word = word_mappings[row[0]]
+                    keyword_freq_map[word] = freq
+                    
+        for row in rows_inv_index_title:
+            pages_freq = json.loads(row[1])
+            for page, info in pages_freq.items():
+                if page == page_mappings[page_id]:
+                    freq = info[0]
+                    word = word_mappings[row[0]]
+                    if word not in keyword_freq_map.keys():
+                        keyword_freq_map[word] = freq
+                    else:
+                        keyword_freq_map[word] += freq
+        
+        keyword_freq_map = {k: v for k, v in sorted(keyword_freq_map.items(), key=lambda item: item[1], reverse=True)}
+        keyword_freq_map = dict(list(keyword_freq_map.items())[:5])
+
+        parent_links = []
+
+        for key, value in page_info_dict.items():
+            if page_mappings[page_id] in value[3]:
+                parent_links.append(page_mappings[key])
+
+        result_dict[page_id] = {
+            'title': page_info_dict[page_id][2],  
+            'url': page_mappings[page_id], 
+            'last_modified': page_info_dict[page_id][1],  
+            'page_size': page_info_dict[page_id][0],  
+            'keywords': keyword_freq_map,  
+            'parent_links': parent_links[:10],  
+            'child_links': page_info_dict[page_id][3][:10]  
+        }
+    
+    return result_dict
 
 def get_page_body_size_map():
     page_body_sizes = {}
@@ -119,7 +176,7 @@ def get_tf_idf_score_title():
 
     page_id_mappings = get_page_id_mappings()
 
-    page_sizes = get_page_title_size_map()
+    page_sizes = get_page_body_size_map()
 
     for word, pages_freq in pages_freq_map.items():
         for url, word_data in pages_freq.items():
@@ -186,7 +243,7 @@ def get_phrase_body_tf_idf(query_phrase):
 
             phrase_frequency[phrase][page_id_mappings[page_id]] = freq # phrase_frequency -> {phrase : {url : freq }}
 
-    page_sizes = get_page_title_size_map()
+    page_sizes = get_page_body_size_map()
 
     for phrase, pages_freq in phrase_frequency.items():
         for url, phrase_freq in pages_freq.items():
@@ -328,16 +385,24 @@ def calculate_similarity(query_term, query_phrase, body_weights, title_weights):
 
     for page_id, page_vector in page_matrix.items():
         score = cosine_similarity(query_matrix, page_vector)
-        pages_similarity[page_id] = score
+        pages_similarity[page_id] = round(score, 3)
 
     updated_pages_similarity = {}
+    contains_phrases = {}
 
     for query in query_phrase:
         for page_id, score in pages_similarity.items():
             if phrase_freq_body[query][page_id_mappings[page_id]] != 0 or phrase_freq_title[query][page_id_mappings[page_id]] != 0:
-                updated_pages_similarity[page_id] = score
+                contains_phrases[page_id] = True
+            else:
+                contains_phrases[page_id] = False
+    
+    for page_id in contains_phrases.keys():
+        if contains_phrases[page_id] == True:
+            updated_pages_similarity[page_id] = pages_similarity[page_id]
 
-    pages_similarity = updated_pages_similarity
+    if len(query_phrase) > 0:
+        pages_similarity = updated_pages_similarity
         
     return pages_similarity
 
@@ -348,8 +413,7 @@ def retrieval(query_term, query_phrase):
 
     pages_similarity = calculate_similarity(query_term, query_phrase, body_weights, title_weights)
     print("pages_similarity: ", pages_similarity)
-    # result = sorted(pages_similarity, key=lambda x: x[1], reverse=True)
-    result = {k: v for k, v in sorted(pages_similarity.items(), key=lambda item: item[1])}
+    result = {k: v for k, v in sorted(pages_similarity.items(), key=lambda item: item[1], reverse=True)}
         
     if(len(result) == 0):
         return 0

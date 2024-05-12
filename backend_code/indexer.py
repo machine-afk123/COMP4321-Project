@@ -103,9 +103,7 @@ def create_index(conn, cursor):
     # conn, cursor = db.init_connection()
     try:
         base_url = "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm"
-        # base_url = "https://www.cse.ust.hk/~kwtleung/COMP4321/Movie.htm"
         num_pages = 300 # MODIFY THIS PARAMETER TO CHANGE THE num_pages
-        # num_pages = 1
         web_crawler = crawler.Crawler(base_url, num_pages)
         
         extracted_links = web_crawler.bfs_extract()

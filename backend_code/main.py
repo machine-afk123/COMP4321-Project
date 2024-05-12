@@ -1,67 +1,78 @@
 import db
 import indexer
-import sqlite3
-import json
 import engine
 import streamlit as st
 
-def handle_query(query):
-    single_terms = []
-    phrases = []
+def process_input(input_string):
+    individual_words = []
+    word_groups = []
 
-    in_phrase = False
-    current_phrase = ""
-    current_term = ""
+    inside_group = False
+    current_group = ""
+    current_word = ""
 
-    for i in query:
-        if i == '"':
-            if in_phrase:
-                phrases.append(current_phrase)
-                current_phrase = ""
-                in_phrase = False
+    for character in input_string:
+        if character == '"':
+            if inside_group:
+                word_groups.append(current_group)
+                current_group = ""
+                inside_group = False
             else:
-                in_phrase = True
-                if current_term:
-                    single_terms.append(current_term)
-                    current_term = ""
-        elif i == " ":
-            if in_phrase:
-                current_phrase += i
+                inside_group = True
+                if current_word:
+                    individual_words.append(current_word)
+                    current_word = ""
+        elif character == " ":
+            if inside_group:
+                current_group += character
             else:
-                if current_term:
-                    single_terms.append(current_term)
-                    current_term = ""
+                if current_word:
+                    individual_words.append(current_word)
+                    current_word = ""
         else:
-            if in_phrase:
-                current_phrase += i
+            if inside_group:
+                current_group += character
             else:
-                current_term += i
+                current_word += character
 
-    if current_term:
-        single_terms.append(current_term)
-    if current_phrase:
-        phrases.append(current_phrase)
+    if current_word:
+        individual_words.append(current_word)
+    if current_group:
+        word_groups.append(current_group)
 
-
-    return single_terms, phrases
+    return individual_words, word_groups
 
 def view_results(output):
-    sorted_output = sorted(output.items(), key=lambda x: x[1], reverse=True)
+    result_dict = engine.get_page_info(output.keys())
 
-    best_results = sorted_output[:10]
+    for key, value in result_dict.items():
+        st.subheader(f"{value["title"]}")
+        st.markdown(f"Score: {output[key]}")
+        st.markdown(f"URL: {str(value["url"])}")
+        st.markdown(f"Last Modified Date: {str(value["last_modified"])}")
+        st.markdown(f"Page Size: {value["page_size"]}")
+        keyword_freq_str = ""
+        for word, freq in value["keywords"].items():
+            keyword_freq_str += str(word) + " " + str(freq) + "; "
+        keyword_freq_str = keyword_freq_str[:len(keyword_freq_str)-2]
+        st.markdown(keyword_freq_str)
+        st.markdown(f"Parent Links:")
+        for parent in value["parent_links"]:
+            st.markdown(str(parent))
+        st.markdown(f"Child Links:")
+        for child in value["child_links"]:
+            st.markdown(str(child))
+        st.divider()
 
-    page_mappings = engine.get_page_id_mappings()
-
-    for page in best_results:
-        page_link = page_mappings[page]
-
-        st.markdown(f"{page_link}")
-        
 def app():
+    left_co, cent_co, last_co = st.columns(3)
+    with cent_co:
+        st.image("red_bird.png")
+        st.header("Search Engine", divider="red")
     input_query = st.text_input("Enter your query here")
 
     if st.button("SEARCH"):
-        query_term, query_phrase = handle_query(input_query)
+        query_term, query_phrase = process_input(input_query)
         output = engine.retrieval(query_term, query_phrase)
         view_results(output)
     else:
@@ -69,63 +80,10 @@ def app():
     
 def main():
     conn, c = db.init_connection()
-    # db.create_tables(conn, c)
-    # indexer.create_index(conn, c) 
-    # CALL SEARCHER HERE
-    # query = st.textinput()
+    db.create_tables(conn, c)
+    indexer.create_index(conn, c) 
     app()
-    # query_term, query_phrase = handle_query('"Movie Index Page"')
-    # print(query_term)
-    # print(query_phrase)
-    # result = engine.retrieval(query_term, query_phrase)
-    # generate component cards for each page result.
-
-    # print(result)
-
-    # result_front_end = []
-
-    # for doc_id, score in result:
-    #     current_result = []
-    #     current_result.append("Score: " + str(score) + "    " + crawled_result[doc_id]["title"])
-    #     current_result.append("  URL: " + crawled_result[doc_id]["url"])
-
-    #     current_result.append("  " + "Last modified time: " + crawled_result[doc_id]["last_modified"] + ", Page size: " + str(crawled_result[doc_id]["page_size"]) + '\n')
-        
-    #     top_n_words = crawler.top_n_keywords(crawled_result[doc_id]["keywords"], 5)
-    #     top_n_words_str = "  Top 5 keywords: "
-    #     for word in top_n_words:
-    #         top_n_words_str += (word + " " + str(crawled_result[doc_id]["keywords"][word]["frequency"]) + "; ")
-    #     current_result.append(top_n_words_str + '\n')
-
-    #     current_result.append("  Parent links: ")
-    #     count = 0
-    #     for parent in crawled_result[doc_id]["parents"]:
-    #         current_result.append("    " + parent)
-    #         count += 1
-    #         if count == 10:
-    #             current_result.append("    ......\n")
-    #             break
-
-    #     current_result.append("  Children links: ")
-    #     count = 0
-    #     for child in crawled_result[doc_id]["children"]:
-    #         current_result.append("    " + child)
-    #         count += 1
-    #         if count == 10:
-    #             current_result.append("    ......\n")
-    #             break
-    #     current_result.append('\n')
-
-    #     for string in current_result:
-    #         string = replace_chars(string)
-    #     result_front_end.append(current_result)
-
-    # print(result_front_end)
-    # print("length: ", len(result_front_end))
-    # print("========================Search End========================")
-
-    # return result_front_end
-    # db.close_connection(conn)
+    db.close_connection(conn)
 
 if __name__ == "__main__":
     main()
