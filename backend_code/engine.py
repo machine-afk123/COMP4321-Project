@@ -418,6 +418,6 @@ def retrieval(query_term, query_phrase):
     if(len(result) == 0):
         return 0
     elif len(result) >= 50:
-        result = result[:50]
+        result = dict(list(result.items())[:50])
     
     return result
