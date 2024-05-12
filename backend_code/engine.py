@@ -87,6 +87,8 @@ def get_page_info(page_ids):
             'parent_links': parent_links[:10],  
             'child_links': page_info_dict[page_id][3][:10]  
         }
+
+    # print("Result Dict: ", result_dict)
     
     return result_dict
 
@@ -167,6 +169,8 @@ def get_tf_idf_score_body():
             weight = (0.5 + (0.5 * (tf / page_sizes[url]))) * math.log2(1 + (len(page_id_mappings.keys())/df_map[word]))
             tf_idf_map[word][url] = weight
 
+    # print("TF-IDF Body: ", tf_idf_map)
+
     return tf_idf_map # tf_idf_map -> {word : {url : weight}}
 
 def get_tf_idf_score_title():
@@ -183,6 +187,8 @@ def get_tf_idf_score_title():
             tf = word_data[0]
             weight = (0.5 + (0.5 * (tf / page_sizes[url]))) * math.log2(1 + (len(page_id_mappings.keys())/df_map[word]))
             tf_idf_map[word][url] = weight
+
+    # print("TF-IDF Title: ", tf_idf_map)
 
     return tf_idf_map  # tf_idf_map -> {word : {url : weight}}
 
@@ -250,6 +256,9 @@ def get_phrase_body_tf_idf(query_phrase):
             tf = phrase_freq
             weight = (0.5 + (0.5 * (tf / page_sizes[url]))) * math.log2(1 + (len(page_id_mappings.keys())/len(phrase_frequency[phrase].keys())))
             tf_idf_map[phrase][url] = weight
+    
+    # print("Phrase Frequency Body: ", phrase_frequency)
+    # print("Phrase Body TF-IDF: ", tf_idf_map)
 
     return phrase_frequency, tf_idf_map # phrase_frequency -> {phrase : {url : freq }}, tf_idf_map -> {phrase : {url : weight}}
         
@@ -319,6 +328,9 @@ def get_phrase_title_tf_idf(query_phrase):
             weight = (0.5 + (0.5 * (tf / page_sizes[url]))) * math.log2(1 + (len(page_id_mappings.keys())/len(phrase_frequency[phrase].keys())))
             tf_idf_map[phrase][url] = weight
 
+    # print("Phrase Frequency Title: ", phrase_frequency)
+    # print("Phrase Title TF-IDF: ", tf_idf_map)
+
     return phrase_frequency, tf_idf_map # phrase_frequency -> {phrase : {url : freq }}, tf_idf_map -> {phrase : {url : weight}}
 
 def dot_product(vec1, vec2):
@@ -336,13 +348,13 @@ def cosine_similarity(vec1, vec2):
     else:
         return dot_prod / (mag1 * mag2)
 
-def calculate_similarity(query_term, query_phrase, body_weights, title_weights):
+def calc_similarity(query_term, query_phrase, body_weights, title_weights):
     query_term = indexer.index(query_term) 
     query_phrase = indexer.phrase_stemmer(query_phrase)
 
-    all_terms = set(body_weights.keys()).union(set(title_weights.keys())).union(set(query_term).union(set(query_phrase)))
+    term_vector = set(body_weights.keys()).union(set(title_weights.keys())).union(set(query_term).union(set(query_phrase)))
 
-    query_vector = {term: 0 for term in all_terms} # query_vector -> {term : isquery(0/1)}
+    query_vector = {term: 0 for term in term_vector} # query_vector -> {term : isquery(0/1)}
     for term in query_term + query_phrase:
         query_vector[term] = 1
     
@@ -352,13 +364,13 @@ def calculate_similarity(query_term, query_phrase, body_weights, title_weights):
     page_vectors = defaultdict(lambda: defaultdict(float))
     for i in page_id_mappings.keys():
         page_vectors[i] = {}
-        for term in all_terms:
+        for term in term_vector:
             page_vectors[i][term] = 0
 
     phrase_freq_body, phrase_weight_body = get_phrase_body_tf_idf(query_phrase)
     phrase_freq_title, phrase_weight_title = get_phrase_title_tf_idf(query_phrase)
 
-    for term in all_terms:
+    for term in term_vector:
         for page_id in page_id_mappings.keys():
             if term in query_phrase: 
                 if page_id_mappings[page_id] in phrase_weight_body[term].keys():
@@ -411,13 +423,12 @@ def retrieval(query_term, query_phrase):
     body_weights = get_tf_idf_score_body()
     title_weights = get_tf_idf_score_title()
 
-    pages_similarity = calculate_similarity(query_term, query_phrase, body_weights, title_weights)
-    print("pages_similarity: ", pages_similarity)
+    pages_similarity = calc_similarity(query_term, query_phrase, body_weights, title_weights)
     result = {k: v for k, v in sorted(pages_similarity.items(), key=lambda item: item[1], reverse=True)}
         
     if(len(result) == 0):
         return 0
     elif len(result) >= 50:
         result = dict(list(result.items())[:50])
-    
+    # print("Final Page Result (with scores in descending order): ", result)
     return result
