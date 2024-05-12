@@ -3,6 +3,7 @@ import indexer
 import sqlite3
 import json
 import engine
+import streamlit as st
 
 def handle_query(query):
     single_terms = []
@@ -43,20 +44,43 @@ def handle_query(query):
 
 
     return single_terms, phrases
+
+def view_results(output):
+    sorted_output = sorted(output.items(), key=lambda x: x[1], reverse=True)
+
+    best_results = sorted_output[:10]
+
+    page_mappings = engine.get_page_id_mappings()
+
+    for page in best_results:
+        page_link = page_mappings[page]
+
+        st.markdown(f"{page_link}")
+        
+def app():
+    input_query = st.text_input("Enter your query here")
+
+    if st.button("SEARCH"):
+        query_term, query_phrase = handle_query(input_query)
+        output = engine.retrieval(query_term, query_phrase)
+        view_results(output)
+    else:
+        output = {}
     
 def main():
     conn, c = db.init_connection()
-    db.create_tables(conn, c)
-    indexer.create_index(conn, c) 
+    # db.create_tables(conn, c)
+    # indexer.create_index(conn, c) 
     # CALL SEARCHER HERE
     # query = st.textinput()
-    query_term, query_phrase = handle_query('"Movie Index Page"')
-    print(query_term)
-    print(query_phrase)
-    result = engine.retrieval(query_term, query_phrase)
+    app()
+    # query_term, query_phrase = handle_query('"Movie Index Page"')
+    # print(query_term)
+    # print(query_phrase)
+    # result = engine.retrieval(query_term, query_phrase)
     # generate component cards for each page result.
 
-    print(result)
+    # print(result)
 
     # result_front_end = []
 
@@ -101,7 +125,7 @@ def main():
     # print("========================Search End========================")
 
     # return result_front_end
-    db.close_connection(conn)
+    # db.close_connection(conn)
 
 if __name__ == "__main__":
     main()

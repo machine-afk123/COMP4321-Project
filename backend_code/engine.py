@@ -7,8 +7,10 @@ from collections import defaultdict
 from nltk.stem import PorterStemmer
 import numpy
 
-db_conn = sqlite3.connect('web_crawler.db')
-c = db_conn.cursor()   
+# db_conn = sqlite3.connect('web_crawler.db')
+# c = db_conn.cursor()   
+
+db_conn, c = db.init_connection()
 
 def get_page_id_mappings():
     c.execute("SELECT page_id, url FROM page_mapping")
